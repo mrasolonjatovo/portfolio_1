@@ -1,0 +1,383 @@
+---
+title: "PROMOTION ABONNEMENT ANNUEL DES VELOS LIBRE SERVICES"
+author: "Minosoa Rasolonjatovo"
+date: "2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r dossier importation}
+setwd("C:/Users/minos/OneDrive/Documents/2025/portfolio1")
+getwd
+```
+#CONSTITUTION DE LA BASE DE DONNEES
+```{r chargement database}
+library (readr)
+q1_2019 <- read.csv("Divvy_Trips_2019_Q1.csv")
+q1_2020 <- read.csv("Divvy_Trips_2020_Q1.csv")
+```
+Les bases de données concernent des enregistrements de trajets réalisés sur un trimestre des années 2019 et 2020.
+les données proviennent de la base de données de l'entreprise auprès des bornes à vélos dispersés un peu partout dans la ville de Chicago
+```{r les deux databases}
+col_data_2019 <- colnames(q1_2019)
+col_data_2020 <- colnames(q1_2020)
+
+```
+
+Les noms des variables sont différentes dans les deux bases de données. Nénamoins, on y retrouve des informations communes. Nous allons renommer certaines variable de l'année 2019, de sorte à rassembler les informations similaires
+```{r preparation pour fusion}
+#renommer les colonnes
+library(dplyr)
+q1_2019 <- rename(q1_2019
+                     ,ride_id = trip_id
+                   ,rideable_type = bikeid
+                   ,started_at = start_time
+                   ,ended_at = end_time
+                   ,start_station_name = from_station_name
+                   ,start_station_id = from_station_id
+                   ,end_station_name = to_station_name
+                   ,end_station_id = to_station_id
+                   ,member_casual = usertype
+                   )
+str(q1_2019)
+str(q1_2020)
+#remplacer le type des éléments contenus dans ride_id et rideable_id dans la database 2019
+q1_2019 <- mutate(q1_2019, ride_id=as.character(ride_id)
+                    ,rideable_type=as.character(rideable_type))
+
+```
+Afin de constituer la base de données 2019 début 2020, nous allons préparer les bases de données des second, 3ème et 4ème trimestre de l'année 2019.
+```{r autres trimestres 2019}
+#Trimetre 2
+q2_2019 <- read.csv("Divvy_Trips_2019_Q2.csv")
+str(q2_2019)
+colnames(q2_2019)
+
+#remplacer les noms et types des variables pour permettre la fusion
+q2_2019 <- rename(q2_2019
+                  ,ride_id = X01...Rental.Details.Rental.ID
+                  ,rideable_type = X01...Rental.Details.Bike.ID
+                   ,started_at = X01...Rental.Details.Local.Start.Time
+                   ,ended_at = X01...Rental.Details.Local.End.Time
+                   ,start_station_name = X03...Rental.Start.Station.Name
+                   ,start_station_id = X03...Rental.Start.Station.ID
+                   ,end_station_name = X02...Rental.End.Station.Name
+                   ,end_station_id = X02...Rental.End.Station.ID
+                   ,member_casual = User.Type
+                  )
+q2_2019 <- mutate(q2_2019
+                  , ride_id=as.character(ride_id)
+                  , rideable_type=as.character(rideable_type)
+                  )
+
+#Trimestre 3
+q3_2019 <- read.csv("Divvy_Trips_2019_Q3.csv")
+str(q3_2019)
+q3_2019 <- rename(q3_2019
+                  ,ride_id = trip_id
+                  ,rideable_type = bikeid
+                   ,started_at = start_time
+                   ,ended_at = end_time
+                   ,start_station_name = from_station_name
+                   ,start_station_id = from_station_id
+                   ,end_station_name = to_station_name
+                   ,end_station_id = to_station_id
+                   ,member_casual = usertype
+                  )
+q3_2019 <- mutate(q3_2019
+                  , ride_id=as.character(ride_id)
+                  , rideable_type=as.character(rideable_type)
+                  )
+
+#Trimestre 4
+q4_2019 <- read.csv("Divvy_Trips_2019_Q4.csv")
+str(q4_2019)
+q4_2019 <- rename(q4_2019
+                  ,ride_id = trip_id
+                  ,rideable_type = bikeid
+                   ,started_at = start_time
+                   ,ended_at = end_time
+                   ,start_station_name = from_station_name
+                   ,start_station_id = from_station_id
+                   ,end_station_name = to_station_name
+                   ,end_station_id = to_station_id
+                   ,member_casual = usertype
+                  )
+q4_2019 <- mutate(q4_2019
+                  , ride_id=as.character(ride_id)
+                  , rideable_type=as.character(rideable_type)
+                  )
+
+```
+Nous étudierons donc l'utilisation des vélos libre-service de l'année 2019 entière jusqu'à la fin du 1er trimestre 2020.
+
+```{r Fusion databases}
+all_trips <- bind_rows(q1_2019, q2_2019, q3_2019, q4_2019, q1_2020)
+colnames(all_trips)
+```
+```{r}
+col_data_2020
+```
+```{r}
+col_data_2019
+```
+En comparant les noms des colonnes des 3 dataframes, nous pouvons voir que l'année 2020 ne dispose pas de valeurs pour les variables :
+* tripduration
+* gender
+*birthyear
+et l'année 2019 des valeurs pour les variables :
+* start_lat
+* start_lng
+* end_lat
+* end_lng
+Nous allons donc enlever ces variables de notre base de données afin de résoudre le problème de données manquantes.
+
+#NETTOYGE DE BASE DE DONNEES POUR ANALYSE
+```{r}
+all_trips <- all_trips %>% select(-c("start_lat", "start_lng", "end_lat", "end_lng", "tripduration", "gender", "birthyear", "X01...Rental.Details.Duration.In.Seconds.Uncapped", "X05...Member.Details.Member.Birthday.Year", "Member.Gender" ))
+colnames(all_trips)
+```
+#EXPLORATION BASE DE DONNEES
+```{r statistique exploratoire}
+colnames(all_trips)  #List of column names
+nrow(all_trips)  #How many rows are in data frame?
+dim(all_trips)  #Dimensions of the data frame?
+str(all_trips)  #See list of columns and data types (numeric, character, etc)
+head(all_trips)
+```
+```{r missing value}
+#Identification des valeurs manquantes
+colSums(is.na(all_trips)) #nombre de Valeurs manquantes par variable
+```
+```{r}
+#member_casual
+unique(all_trips$member_casual) # les valeurs de la variable catégorielle
+table(all_trips$member_casual)
+
+```
+***Les utilisateurs : abonnés et non-abonnés
+On remarque qu'il y a 4 catégories d'utilisateurs alors qu'on en distingue que deux :
+les abonnés : "member" et "Subscriber"
+les utilisateurs occasionnels : "Customer" et "casual"
+On va donc remplacer "Subscriber" par "member", puis "Customer" par "casual" pour n'avoir que deux valeurs uniques:
+* "member": pour les utilisateurs avec un abonnement annuel
+* "casual": pour les utilisateurs ponctuels sans abonnement
+```{r}
+all_trips <- all_trips %>% mutate(member_casual= recode(member_casual,
+                                                        "Subscriber"="member",
+                                                        "Customer"="casual"))
+table(all_trips$member_casual)
+
+```
+***Les dates
+Nous allons travailler sur la variable "started_at", afin d'obtenir les éléments suivants :
+- l'année : "year"
+- le mois : "month"
+- le jour du trajet: "day_of_week"
+- la durée d'un trajet : "ride_length", en secondes, qui sera calculer en soustrayant l'heure de "ended_at" à l'heure de "started_at". 
+
+```{r Dates}
+
+all_trips$date <- as.Date(all_trips$started_at) #The default format is yyyy-mm-dd
+all_trips$month <- format(as.Date(all_trips$date), "%B") # %B :Pour avoir les mois en toute lettre
+all_trips$day <- format(as.Date(all_trips$date), "%d")
+all_trips$year <- format(as.Date(all_trips$date), "%Y")
+all_trips$day_of_week <- format(as.Date(all_trips$date), "%A") # Pour avoir le jour de la semaine
+
+# Add a "ride_length" calculation to all_trips (in seconds)
+all_trips$ride_length <- difftime(all_trips$ended_at,all_trips$started_at) #on a un nouveau variable de type difftime
+
+all_trips$ride_length <- as.numeric(all_trips$ride_length)
+is.numeric(all_trips$ride_length)
+#Variable "ride_length", type numérique
+```
+
+#CREATION BASE DE DONNEES FINALE
+Certains trajets qui ont été répertoriés sont en réalité des entrées lorsque les vélos ont été sortis des docks et pour un contrôle de qualité par Divvy.
+Nous allons donc enlever ces entrées en créant une deuxième version de cette base de données sans ces entrées. 
+
+```{r Creation 2nd Database}
+
+all_trips_v2 <- all_trips[!(all_trips$start_station_name == "HQ QR" | all_trips$ride_length<0),]
+sum(duplicated(all_trips_v2))
+
+```
+Nous avons, de ce fait, finalisé la création de la base de données qui sera utilisée pour notre analyse.
+Pour rappel, l'objectif est de connaître *de quelles manières l'usage des vélos des utilisateurs avec abonnement annuel et des utilisateurs ponctuels diffèrent.*
+
+
+##Analyse Descriptive des données
+### Durée du trajet (ride_length) et groupes d'utilisateurs (member_casual)
+```{r}
+#ride_length
+summary(all_trips_v2$ride_length)
+
+#member_casual
+
+table1 <- all_trips_v2 %>% group_by(member_casual) %>%
+  add_count(member_casual, name = "number") %>%
+  summarise(
+    max = max(ride_length),
+    mean = mean(ride_length),
+    median = median(ride_length),
+    min = min(ride_length),
+    category_count = first(number) # Récupérer la même valeur pour chaque groupe
+)
+
+library(flextable)
+ft_ridelength <- flextable(table1)
+ft_ridelength <- add_header_lines(ft_ridelength, "Statistiques descriptives de la durée du trajet selon les groupes d'utilisateurs")
+ft_ridelength
+save_as_docx("Stats descriptives durée du trajet" = ft_ridelength, path = "stats_ridelength.docx")
+```
+
+```{r}
+
+#Convertir les jours de la semaine en un facteur ordonné, afin que le résultat qui s'affiche montre les jours de façon ordonnés
+all_trips_v2$day_of_week <- factor(
+  all_trips_v2$day_of_week,
+  levels = c("dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"),
+  ordered = TRUE
+)
+str(all_trips_v2$day_of_week) # facteur ordonné, pour pouvoir ordonner les valeurs dans le tableau croisé que nous allons créer
+
+# La durée moyenne du trajet par jour, selon les groupes d'utilisateurs
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + all_trips_v2$day_of_week, FUN = mean)
+
+table2 <- with(data = all_trips_v2, table(member_casual,day_of_week)) %>% as_flextable()
+table2
+save_as_docx(table2, path = "users_per_week.docx")
+
+table3 <- tapply(all_trips_v2$ride_length,
+       list(all_trips_v2$member_casual, all_trips_v2$day_of_week),
+       mean)
+table3_df <- as.data.frame(table3)
+# Ajouter des colonnes pour mieux structurer
+table3_df <- table3_df %>%
+  tibble::rownames_to_column(var = "member_casual")
+table3_df <- flextable(table3_df)
+save_as_docx("Durée moyenne du trajet par semaine au cours de la période étudiée" = table3_df, path = "ride_length_per_week.docx")
+
+```
+
+```{r}
+# Analyse de l'usage des vélos selon les utilisateurs et les jours de la semaine
+
+library(lubridate)
+table4 <- all_trips_v2 %>% 
+ mutate(weekday = wday(started_at, label = TRUE)) %>%  #creates weekday field using wday()
+  group_by(member_casual,weekday) %>%
+  summarise(number_of_rides=n()
+            , average_duration = mean(ride_length)) %>%
+  arrange(member_casual, weekday)
+table4 <- flextable(table4)
+save_as_docx(table4, path = "nride_duration_perweek.docx")
+```
+#Visualisation des données
+```{r}
+library(ggplot2)
+```
+Illustrons de manière graphique le nombre de trajets réalisés dans l'année, selon le groupe d'utilisateurs (les abonnés et utilisateurs occasionnels).
+```{r}
+# Let's visualize the number of rides by rider type
+g1 <- all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge")
+ggsave("wday_nrides.png", plot = g1)
+g1
+
+```
+
+
+
+```{r}
+#More Vizualisations for number of rides member vs Casual
+#Evolution mensuelle du nombres de déplacements à vélos
+#Extraire de la variable month_year, le mois
+all_trips_v2 <- all_trips_v2 %>%
+  mutate(month_year = paste(month, year, sep=" "))
+
+all_trips_v2$month_year <- factor(all_trips_v2$month_year,
+         level = c("janvier 2019", "février 2019", "mars 2019", "avril 2019", "mai 2019", "juin 2019", "juillet 2019", "août 2019", "septembre 2019", "octobre 2019", "novembre 2019", "décembre 2019", "janvier 2020", "février 2020", "mars 2020"), ordered = TRUE)
+
+ g2 <- all_trips_v2 %>% 
+    group_by(member_casual, month_year ) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  ggplot(aes(x = month_year, y = number_of_rides, fill = member_casual))+
+           geom_col(position = "dodge")+
+             theme(axis.text.x = element_text(angle=45))
+ ggsave("month_ridelegth.png", plot = g2)
+ g2
+```
+```{r}
+#Evolutions saisonnières des déplacements hebdomadaires à vélos
+#création de la variable Saison
+all_trips_v2$season <- ifelse(all_trips_v2$month_year %in% c("janvier 2019", "février 2019"), "hiver 2019",
+                              ifelse(all_trips_v2$month_year %in% c("mars 2019", "avril 2019", "mai 2019"), "printemps 2019",
+                                     ifelse(all_trips_v2$month_year %in% c("juin 2019", "juillet 2019", "août 2019"), "été 2019",
+                                            ifelse(all_trips_v2$month_year %in% c("septembre 2019", "octobre 2019", "novembre 2019"), "automne 2019",
+                                                   ifelse(all_trips_v2$month_year %in% c("décembre 2019", "janvier 2020", "février 2020"), "hiver 2020", "D printemps 2020")))))
+nrow(is.na(all_trips_v2$season)) #pas de valeur nulle
+str(all_trips_v2$season)
+  all_trips_v2$season <- factor(all_trips_v2$season,
+                                level = c("hiver 2019", "printemps 2019", "été 2019", "automne 2019", "hiver 2020", "D printemps 2020"), ordered = TRUE)
+
+#Visualisation déplacements à vélos hebodmadaires par saison
+g3 <- all_trips_v2 %>%
+  group_by(member_casual, season, day_of_week) %>%
+  summarise(number_of_rides = n()) %>%
+  ggplot(aes(x=day_of_week, y=number_of_rides, fill = member_casual))+
+  geom_col(position = "dodge")+
+  theme(axis.text.x = element_text(angle = 45, size = 7))+
+   facet_wrap(~season)
+ggsave("season_nride.png", plot = g3)
+g3
+
+```
+Les saisons :
+- Hiver : Décembre, janvier, février
+- Printemps : Mars, avril, Mai
+- Eté : Juin, Juillet, Aout
+- Automne : Septembre, Octobre, Novembre
+
+```{r}
+# Let's create a visualization for average duration
+g4 <- all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")
+g4
+ggsave("wday_duration.png", plot = g4)
+
+```
+#Focus sur les trajets réalisés par saison
+```{r}
+#Vizualisation for average duration per season
+
+
+g5 <- all_trips_v2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, season, weekday) %>%
+  summarise(average_duration = mean(ride_length)) %>% 
+   ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")+
+  theme(axis.text.x = element_text(angle = 45, size = 7))
+  facet_wrap(~season)
+g5
+ggsave("season_duration.png", plot = g5)
+
+
+```
+
