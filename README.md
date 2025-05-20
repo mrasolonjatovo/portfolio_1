@@ -24,5 +24,6 @@ R Markdown : Un script documentant tout le processus analytique, depuis la prép
 PowerPoint : Un support visuel clair et détaillé, destiné à présenter les étapes du projet, les résultats, et les éventuelles extensions de l'analyse pour des prises de décision éclairées.
 
 ***Je vous invite à consulter mon script, ainsi que le livrable de restitution des résultats de mon étude.***
-Script : velo_libre_service.R
+
+Script : velo_libre_service.Rmd ; 
 Livrable : velo_libre_service.pptx
